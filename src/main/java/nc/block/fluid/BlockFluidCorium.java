@@ -26,7 +26,7 @@ public class BlockFluidCorium extends BlockFluidFission {
 		super.onEntityCollision(worldIn, pos, state, entityIn);
 	}
 	
-	@Override
+	/*@Override
 	public void updateTick(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull IBlockState state, @Nonnull Random rand) {
 		Chunk chunk = world.getChunk(pos);
 		if (chunk.isLoaded()) {
@@ -36,5 +36,5 @@ public class BlockFluidCorium extends BlockFluidFission {
 			}
 		}
 		super.updateTick(world, pos, state, rand);
-	}
+	}*/
 }

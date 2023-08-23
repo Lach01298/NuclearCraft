@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 
 import nc.ModCheck;
 import nc.capability.radiation.entity.IEntityRads;
+import nc.capability.radiation.source.IRadiationChunk;
 import nc.capability.radiation.source.IRadiationSource;
 import nc.entity.EntityFeralGhoul;
 import nc.init.NCSounds;
@@ -106,16 +107,17 @@ public class RadiationHandler {
 				playerRads.setTotalRads(playerRads.getTotalRads() * Math.pow(1D - radiation_player_decay_rate, radiation_player_tick_rate), false);
 			}
 			
-			double radiationLevel = RadiationHelper.transferRadsFromInventoryToPlayer(playerRads, player, radiation_player_tick_rate);
+			double radiationLevel = 0;//RadiationHelper.transferRadsFromInventoryToPlayer(playerRads, player, radiation_player_tick_rate);
 			Chunk chunk = player.world.getChunk((int) Math.floor(player.posX) >> 4, (int) Math.floor(player.posZ) >> 4);
 			if (chunk.isLoaded()) {
-				IRadiationSource chunkSource = RadiationHelper.getRadiationSource(chunk);
-				radiationLevel += RadiationHelper.transferRadsToPlayer(chunkSource, playerRads, player, radiation_player_tick_rate);
+				IRadiationChunk radiationChunk = RadiationHelper.getRadiationChunk(chunk);
+				radiationLevel += RadiationHelper.transferRadsFromChunkToPlayer(radiationChunk, playerRads, player, radiation_player_tick_rate);
+				
 			}
 			
 			if (playerRads.getPoisonBuffer() > 0D) {
 				double poisonRads = Math.min(playerRads.getPoisonBuffer() / radiation_player_tick_rate, playerRads.getRecentPoisonAddition() / radiation_poison_time);
-				radiationLevel += RadiationHelper.addRadsToEntity(playerRads, player, poisonRads, true, true, radiation_player_tick_rate);
+				//radiationLevel += RadiationHelper.addRadsToEntity(playerRads, player, poisonRads, true, true, radiation_player_tick_rate);
 				playerRads.setPoisonBuffer(playerRads.getPoisonBuffer() - poisonRads * radiation_player_tick_rate);
 				if (playerRads.getPoisonBuffer() == 0D) {
 					playerRads.resetRecentPoisonAddition();
@@ -251,21 +253,109 @@ public class RadiationHandler {
 				if (!chunk.isLoaded()) {
 					continue;
 				}
-				
-				IRadiationSource chunkSource = RadiationHelper.getRadiationSource(chunk);
-				if (chunkSource == null) {
+
+				IRadiationChunk radiationChunk = RadiationHelper.getRadiationChunk(chunk);
+				if (radiationChunk == null) {
 					continue;
 				}
+				
+				//check world and biome properties
+				double minSourceRadiation = 0;
+				
+				Biome biome = chunk.getBiome(randomOffsetPos, biomeProvider);
+				if (RadBiomes.LIMIT_MAP.containsKey(biome)) 
+				{
+					minSourceRadiation = RadBiomes.LIMIT_MAP.get(biome);
+				}
+				
+				
+				if (RadWorlds.RAD_MAP.containsKey(dimension)) {
+					minSourceRadiation = RadWorlds.RAD_MAP.get(dimension);
+				}
+				
+				if (!RadBiomes.DIM_BLACKLIST.contains(dimension)) {
+					Double biomeRadiation = RadBiomes.RAD_MAP.get(chunk.getBiome(randomOffsetPos, biomeProvider));
+					if (biomeRadiation != null) {
+						minSourceRadiation = RadWorlds.RAD_MAP.get(biomeRadiation);
+					}
+				}
+				
+				
+				
+				
+				
+				//reset chunk source radiation to minimum
+				for(int j =0; j< 16;j++)
+				{
+					radiationChunk.setSourceRadiationLevel(minSourceRadiation, j);
+					
+				}
+				
+				
+				// check for radiation sources in chunk
+
+				// entity sources
+				ClassInheritanceMultiMap<Entity>[] entityListArray = chunk.getEntityLists();
+
+				for (int j = 0; j < entityListArray.length; j++) {
+					Entity[] entityArray = entityListArray[j].toArray(new Entity[entityListArray[j].size()]);
+
+					for (Entity entity : entityArray) {
+						if (entity instanceof EntityPlayer) {
+							RadiationHelper.transferRadsFromInventoryToChunk(((EntityPlayer) entity).inventory, radiationChunk, entity.chunkCoordY);
+						} else if (radiation_dropped_items && entity instanceof EntityItem) {
+							RadiationHelper.transferRadsFromStackToChunk(((EntityItem) entity).getItem(), radiationChunk, entity.chunkCoordY);
+						}
+
+					}
+				}
+
+				// tile entity sources
+				Collection<TileEntity> tileCollection = chunk.getTileEntityMap().values();
+				TileEntity[] tileArray = tileCollection.toArray(new TileEntity[tileCollection.size()]);
+				
+				for (TileEntity tile : tileArray) 
+				{
+					RadiationHelper.transferRadsFromTileToChunk(tile, tile_side, radiationChunk, tile.getPos().getY());
+				}
+				
+				//spread source radiation
+				
+				
+				// decay fallout	
+				for(int j = 0; j < 16; j++)
+				{
+					RadiationHelper.decayFallout(radiationChunk, j, radiation_decay_rate);
+				}
+				
+				
+				//spread fallout
+				
+				
+				// mutate Terrain
+				//mutateTerrain(world, chunk, newLevel);
+				
+				
+				
+				
+			}
+
+		}	
+				
+				
+				
+				
+				/*
 				
 				ClassInheritanceMultiMap<Entity>[] entityListArray = chunk.getEntityLists();
 				for (int j = 0; j < entityListArray.length; j++) {
 					Entity[] entityArray = entityListArray[j].toArray(new Entity[entityListArray[j].size()]);
 					for (Entity entity : entityArray) {
 						if (entity instanceof EntityPlayer) {
-							RadiationHelper.transferRadsFromInventoryToChunkBuffer(((EntityPlayer) entity).inventory, chunkSource);
+							RadiationHelper.transferRadsFromInventoryToChunk(((EntityPlayer) entity).inventory, chunkSource);
 						}
 						else if (radiation_dropped_items && entity instanceof EntityItem) {
-							RadiationHelper.transferRadiationFromStackToChunkBuffer(((EntityItem) entity).getItem(), chunkSource, 1D);
+							RadiationHelper.transferRadiationFromStackToChunk(((EntityItem) entity).getItem(), chunkSource, 1D);
 						}
 						else if (entity instanceof EntityLiving) {
 							EntityLiving entityLiving = (EntityLiving) entity;
@@ -382,7 +472,7 @@ public class RadiationHandler {
 					newLevel = Math.min(newLevel, RadWorlds.LIMIT_MAP.get(dimension));
 				}
 				
-				chunkSource.setRadiationLevel(newLevel);
+				chunkSource.setRadiationLevel(newLevel); 
 				
 				mutateTerrain(world, chunk, newLevel);
 			}
@@ -397,7 +487,26 @@ public class RadiationHandler {
 		}
 		
 		tile_side = EnumFacing.byIndex(tile_side.getIndex() + 1);
+		*/
+		
 	}
+
+	
+	
+	
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	private static final List<byte[]> ADJACENT_COORDS = Lists.newArrayList(new byte[] {1, 0}, new byte[] {0, 1}, new byte[] {-1, 0}, new byte[] {0, -1});
 	

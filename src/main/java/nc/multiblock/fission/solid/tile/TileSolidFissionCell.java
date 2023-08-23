@@ -13,6 +13,7 @@ import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.longs.*;
 import it.unimi.dsi.fastutil.objects.*;
 import nc.Global;
+import nc.capability.radiation.source.IRadiationChunk;
 import nc.capability.radiation.source.IRadiationSource;
 import nc.multiblock.cuboidal.CuboidalPartPositionType;
 import nc.multiblock.fission.*;
@@ -312,9 +313,11 @@ public class TileSolidFissionCell extends TileFissionPart implements ITileFilter
 	
 	@Override
 	public void onClusterMeltdown(Iterator<IFissionComponent> componentIterator) {
-		IRadiationSource chunkSource = RadiationHelper.getRadiationSource(world.getChunk(pos));
-		if (chunkSource != null) {
-			RadiationHelper.addToSourceRadiation(chunkSource, 8D * baseProcessRadiation * getSpeedMultiplier() * fission_meltdown_radiation_multiplier);
+		IRadiationChunk radiationChunk = RadiationHelper.getRadiationChunk(world.getChunk(pos));
+		if (radiationChunk != null) {
+			
+			radiationChunk.addFalloutRadiationLevel(8D * baseProcessRadiation * getSpeedMultiplier() * fission_meltdown_radiation_multiplier, radiationChunk.getSubChunkIDFromY(pos.getY()));
+			
 		}
 		
 		componentIterator.remove();

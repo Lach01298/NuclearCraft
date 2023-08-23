@@ -1,5 +1,7 @@
 package nc.capability.radiation;
 
+import java.util.Arrays;
+
 import nc.capability.radiation.entity.*;
 import nc.capability.radiation.resistance.*;
 import nc.capability.radiation.sink.*;
@@ -29,7 +31,13 @@ public class RadiationCapabilityHandler {
 	
 	@SubscribeEvent
 	public void attachChunkRadiationCapability(AttachCapabilitiesEvent<Chunk> event) {
-		event.addCapability(IRadiationSource.CAPABILITY_RADIATION_SOURCE_NAME, new RadiationSourceProvider(0D));
+		
+		double[] sourceRadiation = new double[16];
+		Arrays.fill(sourceRadiation, 0D);
+		double[] falloutRadiation = new double[16];
+		Arrays.fill(falloutRadiation, 0D);
+		
+		event.addCapability(IRadiationChunk.CAPABILITY_RADIATION_CHUNK_NAME, new RadiationChunkProvider(sourceRadiation,falloutRadiation));
 	}
 	
 	@SubscribeEvent

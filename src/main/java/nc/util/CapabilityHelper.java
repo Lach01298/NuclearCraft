@@ -1,7 +1,7 @@
 package nc.util;
 
-import org.cyclops.commoncapabilities.api.capability.temperature.ITemperature;
-import org.cyclops.commoncapabilities.api.capability.work.IWorker;
+/*import org.cyclops.commoncapabilities.api.capability.temperature.ITemperature;
+import org.cyclops.commoncapabilities.api.capability.work.IWorker;*/
 
 import mekanism.api.gas.IGasHandler;
 import mekanism.common.base.ILogisticalTransporter;
@@ -19,9 +19,9 @@ public class CapabilityHelper {
 	
 	// Common Capabilities
 	
-	@CapabilityInject(ITemperature.class)
+	/*@CapabilityInject(ITemperature.class)
 	public static Capability<ITemperature> CAPABILITY_TEMPERATURE = null;
 	
 	@CapabilityInject(IWorker.class)
-	public static Capability<IWorker> CAPABILITY_WORKER = null;
+	public static Capability<IWorker> CAPABILITY_WORKER = null;*/
 }

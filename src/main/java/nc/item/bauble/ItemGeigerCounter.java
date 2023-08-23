@@ -4,6 +4,7 @@ import static nc.config.NCConfig.radiation_require_counter;
 
 import baubles.api.*;
 import nc.capability.radiation.entity.IEntityRads;
+import nc.capability.radiation.source.IRadiationChunk;
 import nc.item.NCItem;
 import nc.radiation.*;
 import nc.util.Lang;
@@ -16,6 +17,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.RayTraceResult.Type;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.fml.common.Optional;
 
 @Optional.Interface(iface = "baubles.api.IBauble", modid = "baubles")
@@ -39,6 +41,18 @@ public class ItemGeigerCounter extends NCItem implements IBauble {
 				}
 			}
 		}
+		else //TODO remove debug stuff
+		{
+			Chunk chunk = playerIn.world.getChunk((int) Math.floor(playerIn.posX) >> 4, (int) Math.floor(playerIn.posZ) >> 4);
+			IRadiationChunk radiationChunk = RadiationHelper.getRadiationChunk(chunk);
+			int subChunkID = radiationChunk.getSubChunkIDFromY(playerIn.chunkCoordY);
+			
+			System.out.println("chunk: " +chunk.getPos() + " subChunk: " + subChunkID);
+			System.out.println("fallout: " +radiationChunk.getFalloutRadiationLevel(subChunkID) + " source Radiation: "  + radiationChunk.getSourceRadiationLevel(subChunkID) + " total: " + (radiationChunk.getFalloutRadiationLevel(subChunkID) + radiationChunk.getSourceRadiationLevel(subChunkID)));
+		}
+		
+		
+		
 		return new ActionResult<>(EnumActionResult.PASS, playerIn.getHeldItem(handIn));
 	}
 	
